@@ -1,0 +1,278 @@
+ /* In this file I downloded the BikeStore Sample database from
+        https://www.sqlservertutorial.net/sql-server-sample-database
+        and created different scenarios and practiced using different queries.*/
+        
+        -- We will be using subqueries 
+        
+ --Show customer's Id which purchased product_id=10 
+
+        select first_name,last_name,customer_id from sales.customers where customer_id in (
+          select customer_id from sales.orders where order_id in (
+            select order_id from sales.order_items where product_id=10 ))
+				
+
+
+-- Show Customer's list which purchased Brand "Trek"
+
+
+        select customer_id, first_name, last_name from sales.customers where customer_id in (
+          select customer_id from sales.orders where order_id in (
+            select order_id from sales.order_items where product_id in (
+              select product_id from production.products where brand_id in (
+                select Brand_id from production.brands where brand_name='Trek'))))
+
+
+-- Brand's list that was sold in Store_id=2
+
+
+              select brand_name from production.brands where brand_id in (
+                  select brand_id from production.products where product_id in (
+                    select product_id from production.stocks where store_id=2  
+                      ))
+                      
+-- Caterogies's list of product that was sold in Store_id=1
+
+	
+                select category_id,product_id from production.products where product_id in (
+                  select product_id from production.stocks where store_id in (
+                      select store_id from sales.stores where store_id=1))
+                      
+                      
+                          -- different join practices
+  
+           
+    /*Find Product name and brand and model year for year after 2016 and starts with S and not 
+    in Cruiser Bicycles and Mountain Bike*/
+
+
+select product_name,brand_id,model_year,category_name
+     from production.products 
+     inner join production.categories
+     on production.products.category_id=production.categories.category_id
+     where 
+          production.products.model_year>2016 and 
+          product_name like 's%' and 
+          category_name not in('Cruisers Bicycles','Mountain Bikes')
+          order by product_name desc
+
+----
+           select tbl1.product_name,tbl1.brand_id,tbl1.model_year,tbl2.category_name
+           from 
+
+               (select * from production.products where
+               production.products.model_year>2016 and 
+               product_name like 's%' )tbl1
+
+           inner join
+
+           (select * from production.categories where
+           category_name not in('Cruisers Bicycles','Mountain Bikes') )tbl2
+
+           on tbl1.category_id=tbl2.category_id
+
+-----------------------------------------------------------------------------------
+            /* List product name that Starts with letter S and brands are "
+            Pure Cycles','Ritchey','Strider','Sun Bicycles','Surly"
+            and its production year is after 2016*/
+
+     select product_name,brand_name,model_year,category_name
+     from production.brands
+     inner join
+     production.products
+     on production.brands.brand_id=production.products.brand_id
+     inner join
+     production.categories
+     on production.products.category_id=production.categories.category_id
+     where
+     brand_name in ('Pure Cycles','Ritchey','Strider','Sun Bicycles','Surly') 
+     and
+     production.products.model_year>2016 
+     and 
+     product_name like 's%'  
+     and
+     category_name not in('Cruisers Bicycles','Mountain Bikes')
+     order by product_name desc
+ ---------------------------------------------------------------------------------------
+ 
+ 			-- products name + product category purchased after date=2016-02-02
+
+    select product_name,category_name
+    from production.products p
+    inner join 
+    production.categories c
+    on p.category_id=c.category_id
+    inner join 
+    sales.order_items ord
+    on ord.product_id=p.product_id 
+    inner join 
+    sales.orders o
+    on o.order_id=ord.order_id
+    where order_date > '2016-02-02'
+
+      ----------------------------------------------------------------------
+
+		--In each category what brands there are(group by)
+    select  product_name,category_name,brand_name
+    from production.products p
+    inner join 
+    production.categories c
+    on p.category_id=c.category_id
+    inner join 
+    production.brands b
+    on p.brand_id=b.brand_id
+        group by product_name,category_name,brand_name
+
+      ----------------------------------------------------------------------
+
+
+			-- Customers who have not placed an order yet 
+				
+
+      select first_name,Last_name,email 
+      from sales.orders o
+      right join
+      sales.customers c
+      on c.customer_id=o.customer_id
+      where o.customer_id is null
+
+      --------------------------------------------------------------------
+						
+            
+            -- union, union all and exist Practice
+            
+select product_id from production.stocks
+union all   
+select list_price from production.products
+order by product_id   
+
+select * from sales.customers 
+where not exists(
+select * from sales.orders
+where sales.customers.customer_id=sales.orders.customer_id )
+
+select customer_id,count(*) from sales.orders 
+group by customer_id
+having count(*)>2
+
+          ----------------------------------------------------------------------------------
+		  
+		  --	Customer's name who purchased more than once( Having )
+
+
+    select first_name,Last_name from sales.customers where exists (
+    select customer_id,count(*) from sales.orders 
+    group by customer_id
+    having count(*)>2)
+
+				--Customer's name who purchased more than 100$ with subquery and exist
+
+	select first_name,Last_name from sales.customers where customer_id in (
+		select customer_id from sales.orders where order_id in (	
+			select order_id from sales.order_items where product_id in (	
+					select product_id from production.products
+					where sales.order_items.product_id=production.products.product_id and list_price > 100)))
+          
+		-------------------------------------------------------------------------
+    
+					select customer_id from sales.orders where order_id in (
+					select distinct order_id from sales.order_items where exists
+					(select product_id from production.products
+					where sales.order_items.product_id=production.products.product_id 
+					and list_price > 100)
+					)
+          
+    ------------------------------------------------------------------------
+ -- Some Group by and Having practices
+ 
+       -- selects only the departments with the sum of (salary between 20000 and 30000.)
+
+
+select sum(salary),department_id from employees 
+    group by department_id
+      having sum(salary) between 20000 and 30000
+      select department_id from departments where exists (			
+          select sum(salary) as sum_salary from employees
+            where salary between 20000 and 30000)
+
+				--------------------------------------------
+        
+        
+        
+	    -- selects only the departments with the sum of (salary between 20000 and 30000.)
+
+
+	select sum(salary),department_id from employees 
+	  group by department_id
+	  having sum(salary) between 20000 and 30000
+		select department_id from departments where exists (			
+				select sum(salary) as sum_salary from employees
+					where salary between 20000 and 30000)
+				
+					--------------------------------------------
+
+
+				-- find the department that has employees with the lowest salary greater than 10,000.
+
+
+	select	department_name from departments where department_id in (			
+				select department_id from employees 
+				group by department_id
+				having min(salary) > 10000)
+				 
+		
+
+			-- find the departments that have the (average salaries of employees between 5000 and 7000)
+
+SELECT
+	Department_id,
+	AVG(salary)
+FROM
+	employees
+
+GROUP BY	department_id
+
+having  avg(salary) between 5000 and 7000
+
+
+
+							--  finds employees who do not have any dependents? ( Exist Exercise )
+
+
+
+
+select * from employees 
+where not exists
+( select * from dependents 
+where dependents.employee_id=employees.employee_id )
+  order by employee_id
+
+
+
+
+
+		-- finds all employees who (salaries are greater than the average salary of all employees.)
+
+
+select first_name,Last_name,format(salary,'###,###.##') 
+	from employees
+	where salary > (
+		select format (avg(salary),'###,###.##') from employees )
+
+		select format(GETDATE(),'HH:mm:ss')
+-- moshkel code paen chist?
+select first_name,Last_name,avg(salary) as average_salary from employees 
+group by  first_name,Last_name
+having salary > avg(salary)
+
+
+		-- finds all departments which have at least one employee with the (salary greater than 10,000.)
+
+
+
+select department_name from departments where department_id in (
+		select distinct department_id from employees 
+		where salary >= 10000)
+
+		
+
+
