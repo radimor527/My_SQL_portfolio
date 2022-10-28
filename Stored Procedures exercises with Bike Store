@@ -1,0 +1,168 @@
+      --continuting with Bike Store Database from last file I will be wiritng some stored procedure practice
+      
+          --Procedure for creating a new order for customers
+      
+      create procedure NewOrder
+@first_name nvarchar(50),
+@last_name nvarchar(50),
+@email nvarchar(50),
+@store_id int,
+@staff_id int,
+@product_id int,
+@quantity int,
+@list_price int,
+@discount int
+as
+insert into sales.customers(first_name,last_name,email)
+values(@first_name,@last_name,@email)
+
+declare @customer_id int
+set @customer_id=(select max(customer_id) from sales.customers)
+
+insert into sales.orders(customer_id,order_status,order_date,required_date,shipped_date,store_id,staff_id)
+values(@customer_id,1,GETDATE(),GETDATE(),GETDATE(),@store_id,@staff_id)
+
+declare @order_id int
+set @order_id=(select max(@order_id) from sales.orders)
+
+insert into sales.order_items(order_id,item_id,product_id,quantity,list_price,discount)
+values(@order_id,1,@product_id,@quantity,@list_price,@discount)
+go
+
+
+
+DECLARE @r int
+exec @r = NewOrder
+@first_name ='sara',
+@last_name ='samii',
+@email ='sara@mail.com',
+@store_id =1,
+@staff_id =1,
+@product_id =6,
+@quantity =2,
+@list_price =1200,
+@discount=0.1
+
+select @r
+      
+          --Create procedure to determine if a price for a bike is high or low
+      
+     
+      Create procedure productLevel
+@pName nvarchar(20),
+@levelPrice int,
+@Level nvarchar(20) output
+as
+declare @price int
+set @price=(select list_price from production.products where product_name=@pName)
+select @price
+if @price>=@levelPrice
+   begin
+set @Level='high'
+   end
+else
+begin
+set @Level='low'
+end
+go
+
+declare @Level nvarchar(20)
+exec productLevel 'XXX' ,1000000,@Level  output
+select @Level
+      
+      
+        --A procedure to show the brand name with given product name
+        
+        
+        Create procedure productBrandName
+@pName nvarchar(20),
+@brandName nvarchar(20) output
+as
+declare @brand int
+set @brand=(select brand_id from production.products where product_name=@pName)
+set @brandName=(
+case
+when @brand=1 then 'b1'
+when @brand=9 then 'b9'
+else 'invalid'
+end)
+go
+
+
+declare @brandName nvarchar(20)
+exec productBrandName 'XXX', @brandName  output
+select @brandName
+
+
+            -- same exercise with case 
+    
+    Create procedure productBrandName
+@pName nvarchar(20),
+@brandName nvarchar(20) output
+as
+declare @brand int
+set @brand=(select brand_id from production.products where product_name=@pName)
+set @brandName=(
+case
+when @brand=1 then 'b1'
+when @brand=9 then 'b9'
+else 'invalid'
+end)
+go
+
+
+        --Showing product count in a given category name using case
+        
+        Create procedure GetProductCount
+@category_name varchar(20),
+@state varchar(20) output
+
+as
+declare @quantity int 
+	set @quantity=(SELECT sum(quantity) from production.stocks where product_id in (
+			select product_id from production.products where category_id in (
+				select category_id from production.categories where category_name=@category_name)))
+	set @state= (
+case
+when @quantity  >= 1000 then 'Available'
+when @quantity <1000 then 'not Available '
+else 'invalid'
+end)
+go
+
+declare @state varchar(20)
+exec GetProductCount
+'Electric Bikes',
+@state output
+select @state
+
+          
+          
+          --Get manager name with given staff name.
+          
+          
+        Create procedure GetManagerName 
+@last_name varchar(20) ,
+@manager_name varchar(20) output
+as
+declare @manager_id int 
+
+		set @manager_id=(select manager_id from sales.staffs where last_name=@last_name )
+
+		set @manager_name=(
+
+	case
+	when @manager_id=1 then 'Fabiola Jackson'
+	when @manager_id=2 then 'Mireya Copeland'
+	when @manager_id=5 then 'Jannette David'
+	when @manager_id=7 then 'Venita Daniel'
+	else 'Invalid'
+	end )
+
+		
+go
+
+declare @manager_name  varchar(20) -- vaghan nemidonam chera kar nemikone :| :| 
+exec GetManagerName
+'Copeland' , @manager_name output
+select @manager_name
