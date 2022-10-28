@@ -1,0 +1,282 @@
+
+    Create procedure addProduct
+@pName varchar(255),
+@ctName varchar(255)
+as
+declare @lastPid int 
+set @lastPid=(select max(product_id) from product4)
+set @lastPid=@lastPid+1
+insert into product4 values(@lastPid,@pName,@ctName)
+go
+
+exec addProduct 
+@pName='eeee',
+@ctName ='fff'
+                                      -------------------------------
+
+
+
+          
+create procedure staffList
+as
+select first_name,last_name,
+case
+	when store_id=1 then 'Santa Cruz Bikes'
+	when store_id=2 then 'Baldwin Bikes'
+	else 'other'
+end
+from sales.staffs
+go
+
+exec staffList
+
+select * from production.products
+
+
+update TblCustomer set remain=remain-300
+where customerName='A' 
+
+update TblCustomer set remain=remain+300
+where customerName='B' 
+
+                                      ---------------------------------
+create procedure userTransferValue
+@srcUser nvarchar(20),
+@destUser nvarchar(20),
+@value int
+as
+
+update TblCustomer set remain=remain-@value
+where customerName=@srcUser
+
+update TblCustomer set remain=remain+@value
+where customerName=@destUser
+go
+
+
+exec userTransferValue
+@srcUser='B',
+@destUser='A',
+@value='100'
+
+
+                                    ------------------------------------
+
+    ---- Create new Order -----
+
+Cretae procedure NewOrder
+@first_name nvarchar(50),
+@last_name nvarchar(50),
+@email nvarchar(50),
+@store_id int,
+@staff_id int
+as
+	insert into sales.customers(first_name,last_name,email)
+	values(@first_name,@last_name,@email)
+
+	declare @customer_id int
+	set @customer_id=(select max(customer_id) from sales.customers)
+
+	insert into sales.orders(customer_id,order_status,order_date,required_date,shipped_date,store_id,staff_id)
+	values(@customer_id,1,GETDATE(),GETDATE(),GETDATE(),@store_id,@staff_id)
+go
+
+DECLARE	@r int
+exec @r = NewOrder
+@first_name ='sara',
+@last_name ='samii',
+@email ='sara@mail.com',
+@store_id =1,
+@staff_id =1
+
+select @r
+
+
+                                     -----Create New Brand-----
+
+alter procedure NewBrand 
+@brand_name varchar(50)
+
+as
+	insert into production.brands ( brand_name)
+	Values (@brand_name)
+
+go 
+
+exec NewBrand
+@brand_name='Raha'
+
+
+ 
+ 
+                                  -------- new product with new category ----------
+
+create procedure NewCategory 
+@category_name varchar(50),
+@product_name varchar(50),
+@brand_id int,
+@model_year int,
+@list_price int
+as
+		
+		insert into production.categories (category_name)
+		values ( @category_name)
+
+		declare @category_id int 
+		set @category_id=(select max(category_id) from production.categories )
+
+		insert into production.products(product_name,brand_id,category_id,model_year,list_price)
+		values (@product_name,@brand_id,@category_id,@model_year,@list_price)
+
+go
+
+Declare @return_result int
+exec @return_result=NewCategory
+@category_name='NewBIKE',
+@product_name='NewBike in category',
+@brand_id=2,
+@model_year=1992,
+@list_price=700
+
+select @return_resul
+
+create procedure getName
+@customerId int,
+@name nvarchar(20) output
+as
+set @name=(select first_name from sales.customers where customer_id=@customerId)
+go
+
+declare @name nvarchar(20)
+exec getName
+@customerId =100 ,@name output
+
+select @name
+
+
+                    -------- Getting Product by Category Name -----------
+
+create procedure GetProductCategoryName
+@product_id int,
+@category_name varchar(20) output
+as
+
+
+      set @category_name=(
+    select  category_name 
+    from production.products p
+    inner join production.categories c
+    on p.category_id=c.category_id
+    where product_id=@product_id)
+    go
+
+    declare @category_name varchar(20) 
+    exec GetProductCategoryName
+    6,
+    @category_name output 
+    select @category_name
+
+
+
+create procedure GetProductCategoryName2
+@product_id int,
+@category_name varchar(20) output
+as
+	set @category_name=(
+			select category_name from production.categories where category_id in 	
+		(select category_id from production.products where product_id
+		=@product_id))
+go
+
+declare @category_name varchar(20) 
+exec GetProductCategoryName2
+6,
+@category_name output 
+select @category_name
+
+
+	----------------- customer code bedim Count total order price of a customer's ID -----------
+		  
+
+
+	Create procedure GetTotalOrder
+
+	@customer_id int ,
+	@totalPrice int output
+
+	as
+
+			set @totalPrice= (select sum(list_price) from sales.order_items where order_id in (
+					select order_id from sales.orders where customer_id=@customer_id) )
+	go
+
+	declare @totalPrice int 
+	exec GetTotalOrder
+	7,
+	@totalPrice output
+	select @totalPrice as TOTALprice
+
+
+
+	                  ----------Getting final price of a product with discount ------------
+
+
+	Create procedure FinalPrice
+	@finalPrice  float output,
+	@product_name varchar(20) ,
+	@tax_Percentage float 
+	as
+		declare @price int 
+		set @price=(select list_price from production.products where product_name=@product_name)
+		set @finalPrice=(@price*@tax_percentage)/100+@price 
+	go
+	
+	declare @finalprice float
+	exec FinalPrice
+	@finalprice output,	
+	'X',
+	3.5
+	select @finalprice
+
+
+
+                  --------Number of sold items in a given product name----------
+	
+  Create procedure GetTotal_OrderNumber
+@product_name varchar(50) ,
+@quantity int output
+
+as
+
+	set @quantity=(select count(quantity) from sales.order_items where product_id in (
+		select product_id from production.products where product_name=@product_name))
+go
+
+declare @quantity int
+exec GetTotal_OrderNumber
+'Ritchey Timberwolf Frameset - 2016',
+@quantity output
+select @quantity
+
+---------------------------------------------------------------------------------------------
+-- category_id ro begire and then find the most expensive product in the category
+--group bandi kalaro begire ( category) geruntarin kalayi ke tu in category vojud dare esm bargardune.
+
+              --------Find the most expensive product in a given category--------
+
+create procedure MostExpensive
+@MAX_Price int output,
+@category_id int 
+	as			
+		set @MAX_Price=(select max(list_price) from sales.order_items where product_id in (
+			select product_id from production.products where category_id=@category_id ))
+	go
+
+
+declare @MAX_Price int
+exec MostExpensive
+@MAX_Price output,
+2
+select @MAX_Price
+
+
